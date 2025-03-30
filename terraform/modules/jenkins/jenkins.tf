@@ -81,7 +81,7 @@ resource "aws_instance" "jenkins" {
     # Update package list and install required packages
     apt-get update -y
     # Ensure UFW is installed before configuring it
-    apt-get install -y openjdk-11-jdk wget ufw
+    apt-get install -y openjdk-17-jdk wget
 
     # Add the Jenkins repository key and source list, then install Jenkins
     wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
