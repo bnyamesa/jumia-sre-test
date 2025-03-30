@@ -91,7 +91,7 @@ resource "aws_security_group" "alb_sg" {
 
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project_name}-rds-sg"
-  description = "Allow PostgreSQL traffic from microservice"  # DO NOT change this value!
+  description = "Allow PostgreSQL traffic from microservice"  # Not to change
   vpc_id      = aws_vpc.main.id
 
   lifecycle {

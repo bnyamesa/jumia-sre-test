@@ -30,11 +30,11 @@ output "alb_target_group_arn" {
 
 output "ansible_inventory" {
   description = "Pre-formatted entry for Ansible inventory"
-  value = <<-EOT
+  value       = <<-EOT
     [microservice]
     ${aws_instance.microservice.public_ip} ansible_host=${aws_instance.microservice.public_ip} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/jumia_devops ansible_ssh_port=1337
   EOT
-  sensitive = false
+  sensitive   = false
 }
 
 output "eks_cluster_endpoint" {
