@@ -19,6 +19,13 @@ spec:
           image: "{{ .Values.image.repositoryBackend }}:{{ .Values.image.tagBackend }}"
           ports:
             - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ .Values.rds_endpoint }}/{{ .Values.db_name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "{{ .Values.db_user }}"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "{{ .Values.db_password }}"
         - name: frontend
           image: "{{ .Values.image.repositoryFrontend }}:{{ .Values.image.tagFrontend }}"
           ports:
