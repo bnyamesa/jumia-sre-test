@@ -107,9 +107,16 @@ resource "aws_security_group" "rds_sg" {
 }
 
 resource "aws_security_group" "microservice_sg" {
-  name        = "${var.project_name}-microservice-sg"
-  description = "Allow SSH and HTTP traffic from ALB"
+  name        = "jumia-sre-challenge-microservice-sg"
+  description = "Allow SSH, and traffic from ALB"
   vpc_id      = aws_vpc.main.id
+
+  # Prevent Terraform from replacing this resource if only the description changes
+  lifecycle {
+    ignore_changes = [
+      description,
+    ]
+  }
 
   ingress {
     description = "SSH on custom port 1337"
@@ -120,19 +127,19 @@ resource "aws_security_group" "microservice_sg" {
   }
 
   ingress {
-    description      = "HTTP from ALB to Frontend"
-    from_port        = 8081
-    to_port          = 8081
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.alb_sg.id]
+    description     = "HTTP from ALB to Frontend"
+    from_port       = 8081
+    to_port         = 8081
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   ingress {
-    description      = "HTTP from ALB for Backend"
-    from_port        = 8080
-    to_port          = 8080
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.alb_sg.id]
+    description     = "HTTP from ALB for Backend"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {
@@ -143,9 +150,10 @@ resource "aws_security_group" "microservice_sg" {
   }
 
   tags = {
-    Name = "${var.project_name}-microservice-sg"
+    Name = "jumia-sre-challenge-microservice-sg"
   }
 }
+
 
 resource "aws_security_group_rule" "rds_ingress_from_microservice" {
   type                     = "ingress"
@@ -234,3 +242,4 @@ module "jenkins" {
   vpc_id        = aws_vpc.main.id
   subnet_ids    = aws_subnet.public[*].id
 }
+

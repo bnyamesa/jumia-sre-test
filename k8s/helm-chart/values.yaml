@@ -1,8 +1,22 @@
 replicaCount: 3
+
 image:
-  repository: "992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend"
-  tag: "latest"
-  pullPolicy: IfNotPresent
+  repositoryBackend: "992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend"
+  tagBackend: "latest"
+  repositoryFrontend: "992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-frontend"
+  tagFrontend: "latest"
+
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
+
+ingress:
+  enabled: false
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

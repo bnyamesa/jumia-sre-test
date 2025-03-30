@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "jumia-phone-validator.fullname" . }}
+  labels:
+    app: {{ include "jumia-phone-validator.name" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -13,8 +15,11 @@ spec:
         app: {{ include "jumia-phone-validator.name" . }}
     spec:
       containers:
-      - name: {{ include "jumia-phone-validator.name" . }}
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        ports:
-        - containerPort: 8080
+        - name: backend
+          image: "{{ .Values.image.repositoryBackend }}:{{ .Values.image.tagBackend }}"
+          ports:
+            - containerPort: 8080
+        - name: frontend
+          image: "{{ .Values.image.repositoryFrontend }}:{{ .Values.image.tagFrontend }}"
+          ports:
+            - containerPort: 8081

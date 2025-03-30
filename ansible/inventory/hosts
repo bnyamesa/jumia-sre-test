@@ -1,7 +1,5 @@
-# ansible/inventory/hosts
-
 [microservice]
 # Use CURRENT IP, use port 1337 as configure_firewall playbook has completed
-3.65.227.104 ansible_host=3.65.227.104 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/jumia_devops ansible_ssh_port=1337
+3.79.244.229 ansible_host=3.79.244.229 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/jumia_devops ansible_ssh_port=1337
 
 # Variables are loaded via vars_files in playbooks due to environment issues
