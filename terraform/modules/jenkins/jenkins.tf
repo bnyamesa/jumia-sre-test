@@ -50,10 +50,15 @@ resource "aws_security_group" "jenkins_sg" {
   }
 
   egress {
+    description = "Allow all outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-jenkins-sg"
   }
 }
 
@@ -61,25 +66,30 @@ resource "aws_instance" "jenkins" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
   key_name               = var.ssh_key_name
-  subnet_id              = element(var.subnet_ids, 1)
+  subnet_id              = element(var.subnet_ids, 0)  // Use the first public subnet for proper public IP assignment
   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+  associate_public_ip_address = true
 
   user_data = <<-EOF
     #!/bin/bash
-    sudo apt-get update -y
-    sudo apt-get install -y openjdk-11-jdk wget
-    wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
-    sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
-    sudo apt-get update -y
-    sudo apt-get install -y jenkins
+    # Update package list and install OpenJDK and wget
+    apt-get update -y
+    apt-get install -y openjdk-11-jdk wget
+
+    # Add Jenkins repository and install Jenkins
+    wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
+    echo "deb https://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
+    apt-get update -y
+    apt-get install -y jenkins
 
     # Reconfigure SSH to listen on port 1337
-    sudo sed -i 's/#Port 22/Port 1337/' /etc/ssh/sshd_config
-    sudo systemctl restart sshd
+    sed -i 's/#Port 22/Port 1337/' /etc/ssh/sshd_config
+    sed -i 's/Port 22/Port 1337/' /etc/ssh/sshd_config
+    systemctl restart sshd
 
     # Start and enable Jenkins
-    sudo systemctl start jenkins
-    sudo systemctl enable jenkins
+    systemctl start jenkins
+    systemctl enable jenkins
   EOF
 
   tags = {
