@@ -38,3 +38,12 @@ pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
 release.properties
+
+
+# Ignore Terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# Ignore Terraform provider caches and modules directory
+.terraform/

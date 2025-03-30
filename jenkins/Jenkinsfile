@@ -1,33 +1,46 @@
 pipeline {
     agent any
+    environment {
+        AWS_REGION    = "eu-central-1"
+        ECR_REGISTRY  = "992122884453.dkr.ecr.eu-central-1.amazonaws.com"
+        FRONTEND_IMAGE= "validator-frontend"
+        BACKEND_IMAGE = "validator-backend"
+        HELM_RELEASE  = "jumia-phone-validator"
+        HELM_CHART_DIR= "k8s/helm-chart"
+    }
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/bnyamesa/jumia-sre-test.git', branch: 'main'
+                checkout scm
             }
         }
         stage('Build Docker Images') {
             steps {
-                sh 'docker build -t validator-backend ./jumia_phone_validator/validator-backend'
-                sh 'docker build -t validator-frontend ./jumia_phone_validator/validator-frontend'
+                script {
+                    sh 'docker-compose -f k8s/docker-compose.yml build'
+                    sh 'docker-compose -f k8s/docker-compose.yml push'
+                }
             }
         }
-        stage('Push Docker Images') {
+        stage('Deploy to EKS with Helm') {
             steps {
-                sh '''
-                  aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 992122884453.dkr.ecr.eu-central-1.amazonaws.com
-                  docker tag validator-backend:latest 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend:latest
-                  docker tag validator-frontend:latest 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-frontend:latest
-                  docker push 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend:latest
-                  docker push 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-frontend:latest
-                '''
+                script {
+                    sh 'aws eks update-kubeconfig --region $AWS_REGION --name ${HELM_RELEASE}-eks'
+                    sh """
+                       helm upgrade --install ${HELM_RELEASE} ${HELM_CHART_DIR} \\
+                         --set image.repositoryBackend=${ECR_REGISTRY}/${BACKEND_IMAGE} \\
+                         --set image.repositoryFrontend=${ECR_REGISTRY}/${FRONTEND_IMAGE}
+                    """
+                }
             }
         }
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh 'kubectl apply -f k8s/deployment.yaml'
-                sh 'kubectl apply -f k8s/service.yaml'
-            }
+    }
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
         }
     }
 }

@@ -24,7 +24,7 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  description = "List of public subnet IDs for the Jenkins instance"
+  description = "List of public subnet IDs for Jenkins"
   type        = list(string)
 }
 

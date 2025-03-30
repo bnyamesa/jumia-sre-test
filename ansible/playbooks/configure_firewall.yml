@@ -6,17 +6,18 @@
   vars_files:
     - ../group_vars/all.yml
 
+  vars:
+    app_base_dir: /opt/jumia_app
+    app_source_dir: "{{ app_base_dir }}/source"
+    app_deploy_dir: "{{ app_base_dir }}/deploy"
+    git_repo_url: "https://github.com/Jumia/DevOps-Challenge.git"
+    git_branch: main
+    ubuntu_release_codename: jammy
+
   tasks:
-    - name: Install prerequisite packages (including git)
+    - name: Install prerequisite packages
       apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - gnupg
-          - lsb-release
-          - python3-pip
-          - git
+        name: ['apt-transport-https', 'ca-certificates', 'curl', 'gnupg', 'lsb-release', 'python3-pip', 'git']
         state: present
         update_cache: yes
 
@@ -28,11 +29,7 @@
 
     - name: Install Docker Engine, CLI, and Compose Plugin
       apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-compose-plugin
+        name: ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose-plugin']
         state: present
         update_cache: yes
 

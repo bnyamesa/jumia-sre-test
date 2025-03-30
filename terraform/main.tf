@@ -163,7 +163,7 @@ resource "aws_security_group_rule" "rds_ingress_from_microservice" {
   description              = "Allow PostgreSQL traffic from Microservice SG"
 }
 
-# NEW: Allow PostgreSQL traffic from the entire VPC so that EKS can connect
+# NEW: Allow PostgreSQL traffic from the entire VPC for EKS connectivity
 resource "aws_security_group_rule" "rds_ingress_from_vpc" {
   type              = "ingress"
   from_port         = 5432
@@ -220,18 +220,18 @@ module "rds" {
   depends_on             = [aws_db_subnet_group.db_subnet_group]
 }
 
-# ALB Module
+# --- ALB Module ---
 module "elb" {
-  source           = "./modules/elb"
-  project_name     = var.project_name
-  vpc_id           = aws_vpc.main.id
-  subnet_ids       = aws_subnet.public[*].id
-  security_groups  = [aws_security_group.alb_sg.id]
+  source            = "./modules/elb"
+  project_name      = var.project_name
+  vpc_id            = aws_vpc.main.id
+  subnet_ids        = aws_subnet.public[*].id
+  security_groups   = [aws_security_group.alb_sg.id]
   target_instance_id = aws_instance.microservice.id
-  depends_on       = [aws_instance.microservice]
+  depends_on        = [aws_instance.microservice]
 }
 
-# EKS Module 
+# --- EKS Module ---
 module "eks" {
   source        = "./modules/eks"
   project_name  = var.project_name
@@ -239,7 +239,7 @@ module "eks" {
   instance_type = var.instance_type
 }
 
-# Jenkins Module
+# --- Jenkins Module ---
 module "jenkins" {
   source        = "./modules/jenkins"
   project_name  = var.project_name

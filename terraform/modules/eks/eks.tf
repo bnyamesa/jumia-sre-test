@@ -13,7 +13,7 @@ variable "instance_type" {
   type        = string
 }
 
-# IAM Role for EKS Cluster
+# Create IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster_role" {
   name = "${var.project_name}-eks-cluster-role"
   assume_role_policy = jsonencode({
@@ -31,7 +31,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
   role       = aws_iam_role.eks_cluster_role.name
 }
 
-# IAM Role for EKS Node Group
+# Create IAM Role for EKS Node Group
 resource "aws_iam_role" "eks_node_role" {
   name = "${var.project_name}-eks-node-role"
   assume_role_policy = jsonencode({
