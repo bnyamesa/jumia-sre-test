@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jumia-phone-validator-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: jumia-phone-validator
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080

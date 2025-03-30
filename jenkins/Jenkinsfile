@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/bnyamesa/jumia-sre-test.git', branch: 'main'
+            }
+        }
+        stage('Build Docker Images') {
+            steps {
+                sh 'docker build -t validator-backend ./jumia_phone_validator/validator-backend'
+                sh 'docker build -t validator-frontend ./jumia_phone_validator/validator-frontend'
+            }
+        }
+        stage('Push Docker Images') {
+            steps {
+                sh '''
+                  aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 992122884453.dkr.ecr.eu-central-1.amazonaws.com
+                  docker tag validator-backend:latest 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend:latest
+                  docker tag validator-frontend:latest 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-frontend:latest
+                  docker push 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend:latest
+                  docker push 992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-frontend:latest
+                '''
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl apply -f k8s/service.yaml'
+            }
+        }
+    }
+}

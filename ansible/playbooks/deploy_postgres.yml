@@ -1,0 +1,50 @@
+# ansible/playbooks/deploy_postgres.yml
+---
+- name: Setup PostgreSQL Database Content
+  hosts: microservice
+  gather_facts: no
+  become: yes # Top-level become is fine
+  vars_files:
+    - ../group_vars/all.yml # Loads all needed vars including app_source_dir
+
+  # REMOVED vars: section - app_source_dir is now in group_vars/all.yml
+
+  tasks:
+    - name: Install PostgreSQL client tools
+      apt:
+        name: postgresql-client
+        state: present
+        update_cache: yes
+      # become: yes <-- Handled by top-level become
+
+    - name: Create temporary directory for SQL file
+      file:
+        path: /tmp/sql_import
+        state: directory
+        mode: '0755'
+      # become: yes <-- Handled by top-level become
+
+    - name: Copy sample SQL file from checked-out repo to temp location
+      copy:
+        src: "{{ app_source_dir }}/jumia_phone_validator/database/sample.sql"
+        dest: /tmp/sql_import/sample.sql
+        mode: '0644'
+        remote_src: yes
+      become: yes # <-- CHANGE THIS TO YES (to write into /tmp/sql_import owned by root)
+
+    - name: Dump sample.sql into the RDS database
+      become: no # Keep no, run psql as ubuntu user
+      shell: >
+        PGPASSWORD="{{ db_password }}" psql -h {{ rds_endpoint }} -U {{ db_user }} -d {{ db_name }} -f /tmp/sql_import/sample.sql
+      environment:
+        PGPASSWORD: "{{ db_password }}"
+      register: psql_output
+      changed_when: "'ERROR' not in psql_output.stderr"
+      failed_when: "'FATAL' in psql_output.stderr or 'ERROR' in psql_output.stderr"
+      no_log: false
+
+    - name: Clean up temporary SQL file and directory
+      file:
+        path: /tmp/sql_import
+        state: absent
+      # become: yes <-- Handled by top-level become

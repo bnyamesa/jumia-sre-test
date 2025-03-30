@@ -1,0 +1,20 @@
+# ansible/playbooks/templates/docker-compose.yml.j2
+version: '2'
+services:
+  backend:
+    image: "{{ ecr_registry }}/{{ backend_image }}"
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://{{ rds_endpoint }}:5432/{{ db_name }}
+      - SPRING_DATASOURCE_USERNAME={{ db_user }}
+      - SPRING_DATASOURCE_PASSWORD={{ db_password }}
+    restart: always
+
+  frontend:
+    image: "{{ ecr_registry }}/{{ frontend_image }}"
+    ports:
+      - "8081:8081"
+    restart: always
+
+# Note: The 'version' field is obsolete in recent docker-compose versions, but is included for compatibility.

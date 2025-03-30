@@ -1,0 +1,8 @@
+replicaCount: 3
+image:
+  repository: "992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+service:
+  type: LoadBalancer
+  port: 80

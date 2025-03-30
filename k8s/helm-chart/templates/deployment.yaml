@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jumia-phone-validator.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "jumia-phone-validator.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "jumia-phone-validator.name" . }}
+    spec:
+      containers:
+      - name: {{ include "jumia-phone-validator.name" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 8080

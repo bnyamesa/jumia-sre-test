@@ -1,0 +1,89 @@
+# ansible/playbooks/deploy_microservice.yml
+---
+- name: Deploy Jumia Phone Validator Microservice
+  hosts: microservice
+  become: yes
+  gather_facts: no # Keep 'no' to avoid previous hang
+
+  vars_files:
+    - ../group_vars/all.yml # Explicitly load variables
+
+  vars:
+    app_base_dir: /opt/jumia_app
+    app_source_dir: "{{ app_base_dir }}/source"
+    app_deploy_dir: "{{ app_base_dir }}/deploy"
+    git_repo_url: "https://github.com/Jumia/DevOps-Challenge.git"
+    git_branch: main
+    # Hardcode distribution release since facts are off (ami-04a5bacc58328233d -> Ubuntu 22.04)
+    ubuntu_release_codename: jammy
+
+  tasks:
+    - name: Install prerequisite packages (including git)
+      apt:
+        name: ['apt-transport-https', 'ca-certificates', 'curl', 'gnupg', 'lsb-release', 'python3-pip', 'git']
+        state: present
+        update_cache: yes
+      become: yes # Ensure apt runs with sudo
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ubuntu_release_codename }} stable" # Use variable
+        state: present
+        filename: docker
+      become: yes # Ensure apt_repository runs with sudo
+
+    - name: Install Docker Engine, CLI, and Compose Plugin
+      apt:
+        name: ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose-plugin']
+        state: present
+        update_cache: yes
+      become: yes # Ensure apt runs with sudo
+
+    - name: Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      become: yes # Ensure service runs with sudo
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+      become: yes # Ensure user runs with sudo
+
+    - name: Ensure base application directory exists
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ app_base_dir }}"
+        - "{{ app_source_dir }}"
+        - "{{ app_deploy_dir }}"
+      become: yes # Ensure file runs with sudo
+
+    - name: Checkout application source code from Git
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ app_source_dir }}"
+        version: "{{ git_branch }}"
+        force: yes
+      environment:
+        GIT_TERMINAL_PROMPT: '0' # Prevent interactive prompts
+      become: yes # Run git command as root (consistent with manual test)
+
+    - name: Template docker-compose.yml file into deployment directory
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ app_deploy_dir }}/docker-compose.yml"
+        mode: '0644'
+      become: yes # Ensure template runs with sudo (for writing file)
+
+    - name: Deploy containers using docker compose v2
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_deploy_dir }}"
+        state: present
+        remove_orphans: yes
+      become: yes # Run 'docker compose' command as root

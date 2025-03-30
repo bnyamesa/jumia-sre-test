@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jumia-phone-validator
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: jumia-phone-validator
+  template:
+    metadata:
+      labels:
+        app: jumia-phone-validator
+    spec:
+      containers:
+      - name: jumia-phone-validator
+        image: "992122884453.dkr.ecr.eu-central-1.amazonaws.com/validator-backend:latest"
+        ports:
+        - containerPort: 8080

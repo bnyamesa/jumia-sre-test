@@ -1,0 +1,4 @@
+apiVersion: v2
+name: jumia-phone-validator
+version: 0.1.0
+description: A Helm chart for deploying the Jumia Phone Validator microservice.

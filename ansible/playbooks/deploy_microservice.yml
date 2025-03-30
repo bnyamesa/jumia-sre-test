@@ -1,0 +1,179 @@
+---
+- name: Deploy Jumia Phone Validator Microservice
+  hosts: microservice
+  become: yes
+  gather_facts: no  # Fact gathering is disabled; using hardcoded values
+
+  vars_files:
+    - ../group_vars/all.yml  # Loads shared variables (including git_repo_url)
+
+  vars:
+    app_base_dir: /opt/jumia_app
+    app_source_dir: "{{ app_base_dir }}/source"
+    app_deploy_dir: "{{ app_base_dir }}/deploy"
+    git_branch: main
+    # Hardcoded Ubuntu release codename (e.g., "jammy" for Ubuntu 22.04 LTS)
+    ubuntu_release_codename: jammy
+    # AWS/ECR settings
+    aws_region: "eu-central-1"
+    ecr_registry: "992122884453.dkr.ecr.eu-central-1.amazonaws.com"
+    backend_image: "validator-backend"
+    frontend_image: "validator-frontend"
+
+  tasks:
+    - name: Install prerequisite packages (including git)
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - git
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ubuntu_release_codename }} stable"
+        state: present
+        filename: docker
+      become: yes
+
+    - name: Install Docker Engine, CLI, and Compose Plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      become: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+      become: yes
+
+    - name: Ensure base application directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ app_base_dir }}"
+        - "{{ app_deploy_dir }}"
+      become: yes
+
+    - name: Remove existing source directory to ensure clean clone
+      file:
+        path: "{{ app_source_dir }}"
+        state: absent
+      become: yes
+
+    - name: Checkout application source code from Git via clean clone
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ app_source_dir }}"
+        version: "{{ git_branch }}"
+        clone: yes
+        update: no
+      environment:
+        GIT_TERMINAL_PROMPT: '0'
+      become: yes
+
+    - name: Ensure source directory is owned by ubuntu
+      file:
+        path: "{{ app_source_dir }}"
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+      become: yes
+
+    - name: Create swap file if not exists
+      shell: "fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile"
+      args:
+        creates: /swapfile
+      become: yes
+
+    - name: Install dependencies for validator-frontend
+      command: npm install
+      args:
+        chdir: "{{ app_source_dir }}/jumia_phone_validator/validator-frontend"
+      become: no
+
+    - name: Build validator-frontend application
+      command: npm run build
+      args:
+        chdir: "{{ app_source_dir }}/jumia_phone_validator/validator-frontend"
+      become: no
+
+    - name: Build and push validator-frontend Docker image to ECR
+      community.docker.docker_image:
+        name: "{{ frontend_image }}"
+        tag: latest
+        source: build
+        build:
+          path: "{{ app_source_dir }}/jumia_phone_validator/validator-frontend"
+        push: yes
+        repository: "{{ ecr_registry }}/{{ frontend_image }}"
+      become: no
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Build validator-backend application using Maven
+      command: mvn clean package -DskipTests
+      args:
+        chdir: "{{ app_source_dir }}/jumia_phone_validator/validator-backend"
+      become: no
+
+    - name: Build and push validator-backend Docker image to ECR
+      community.docker.docker_image:
+        name: "{{ backend_image }}"
+        tag: latest
+        source: build
+        build:
+          path: "{{ app_source_dir }}/jumia_phone_validator/validator-backend"
+        push: yes
+        repository: "{{ ecr_registry }}/{{ backend_image }}"
+      become: no
+
+    - name: Template docker-compose.yml file into deployment directory
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ app_deploy_dir }}/docker-compose.yml"
+        mode: '0644'
+      become: yes
+
+    - name: Log in to Amazon ECR
+      community.docker.docker_login:
+        registry_url: "{{ ecr_registry }}"
+        username: "AWS"
+        password: "{{ lookup('pipe', 'aws ecr get-login-password --region ' ~ aws_region) }}"
+        reauth: yes
+      become: no
+
+    - name: Deploy containers using docker compose v2
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_deploy_dir }}"
+        state: present
+        remove_orphans: yes
+        timeout: 300
+      become: no

@@ -1,0 +1,40 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform lock file and local working directory
+.terraform.lock.hcl
+.terraform/
+
+# Ansible vault password file (if used)
+.vault_pass
+
+# Temporary files
+*.bak
+*~
+*.swp
+
+# IDE / Editor specific files
+.idea/
+.vscode/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Python virtual environment
+venv/
+*.pyc
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Maven target directory
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
