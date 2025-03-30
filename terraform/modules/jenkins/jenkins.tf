@@ -34,7 +34,7 @@ resource "aws_security_group" "jenkins_sg" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description = "Allow HTTP access for Jenkins UI"
+    description = "Allow HTTP access for Jenkins UI on port 8080"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
@@ -63,12 +63,11 @@ resource "aws_security_group" "jenkins_sg" {
 }
 
 resource "aws_instance" "jenkins" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  key_name               = var.ssh_key_name
-  # Use the first subnet in the list (index 0) to ensure a public IP is assigned
-  subnet_id              = element(var.subnet_ids, 0)
-  vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  key_name                    = var.ssh_key_name
+  subnet_id                   = element(var.subnet_ids, 0)
+  vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
   associate_public_ip_address = true
 
   user_data = <<-EOF
@@ -77,7 +76,10 @@ resource "aws_instance" "jenkins" {
 
     # Update package list and install required packages
     apt-get update -y
-    apt-get install -y openjdk-11-jdk wget
+    apt-get install -y openjdk-11-jdk wget ufw
+
+    # Disable UFW to allow external access to Jenkins on port 8080
+    ufw disable || true
 
     # Add the Jenkins repository key and source list, then install Jenkins
     wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
@@ -85,14 +87,14 @@ resource "aws_instance" "jenkins" {
     apt-get update -y
     apt-get install -y jenkins
 
-    # Ensure Jenkins listens on all interfaces
+    # Ensure Jenkins listens on all interfaces by setting HTTP_HOST=0.0.0.0
     if grep -q "^HTTP_HOST=" /etc/default/jenkins; then
       sed -i 's/^HTTP_HOST=.*/HTTP_HOST=0.0.0.0/' /etc/default/jenkins
     else
       echo "HTTP_HOST=0.0.0.0" >> /etc/default/jenkins
     fi
 
-    # Reconfigure SSH to listen on port 1337
+    # Reconfigure SSH to listen on custom port 1337
     if grep -q "^Port " /etc/ssh/sshd_config; then
       sed -i 's/^Port .*/Port 1337/' /etc/ssh/sshd_config
     else
