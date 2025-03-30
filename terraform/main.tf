@@ -91,8 +91,15 @@ resource "aws_security_group" "alb_sg" {
 
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project_name}-rds-sg"
-  description = "Allow PostgreSQL traffic from microservice and entire VPC"
+  description = "Allow PostgreSQL traffic from microservice"  # DO NOT change this value!
   vpc_id      = aws_vpc.main.id
+
+  lifecycle {
+    ignore_changes = [
+      description,
+      ingress,  # Ignore changes to the ingress blocks to prevent replacement
+    ]
+  }
 
   egress {
     from_port   = 0
@@ -163,7 +170,6 @@ resource "aws_security_group_rule" "rds_ingress_from_microservice" {
   description              = "Allow PostgreSQL traffic from Microservice SG"
 }
 
-# NEW: Allow PostgreSQL traffic from the entire VPC for EKS connectivity
 resource "aws_security_group_rule" "rds_ingress_from_vpc" {
   type              = "ingress"
   from_port         = 5432
@@ -222,13 +228,13 @@ module "rds" {
 
 # --- ALB Module ---
 module "elb" {
-  source            = "./modules/elb"
-  project_name      = var.project_name
-  vpc_id            = aws_vpc.main.id
-  subnet_ids        = aws_subnet.public[*].id
-  security_groups   = [aws_security_group.alb_sg.id]
+  source             = "./modules/elb"
+  project_name       = var.project_name
+  vpc_id             = aws_vpc.main.id
+  subnet_ids         = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.alb_sg.id]
   target_instance_id = aws_instance.microservice.id
-  depends_on        = [aws_instance.microservice]
+  depends_on         = [aws_instance.microservice]
 }
 
 # --- EKS Module ---
