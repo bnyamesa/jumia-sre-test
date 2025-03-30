@@ -66,25 +66,39 @@ resource "aws_instance" "jenkins" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
   key_name               = var.ssh_key_name
-  subnet_id              = element(var.subnet_ids, 0)  // Use the first public subnet for proper public IP assignment
+  # Use the first subnet to ensure public IP assignment
+  subnet_id              = element(var.subnet_ids, 0)
   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
   associate_public_ip_address = true
 
   user_data = <<-EOF
     #!/bin/bash
-    # Update package list and install OpenJDK and wget
+    set -e
+
+    # Update package list and install OpenJDK 11 and wget
     apt-get update -y
     apt-get install -y openjdk-11-jdk wget
 
-    # Add Jenkins repository and install Jenkins
+    # Add Jenkins repository key and repo, then install Jenkins
     wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
     echo "deb https://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
     apt-get update -y
     apt-get install -y jenkins
 
-    # Reconfigure SSH to listen on port 1337
-    sed -i 's/#Port 22/Port 1337/' /etc/ssh/sshd_config
-    sed -i 's/Port 22/Port 1337/' /etc/ssh/sshd_config
+    # Update Jenkins configuration to listen on all interfaces
+    if grep -q "^HTTP_HOST=" /etc/default/jenkins; then
+      sed -i 's/^HTTP_HOST=.*/HTTP_HOST=0.0.0.0/' /etc/default/jenkins
+    else
+      echo "HTTP_HOST=0.0.0.0" >> /etc/default/jenkins
+    fi
+
+    # Reconfigure SSH to use port 1337. If the config does not already contain a Port setting,
+    # append it; otherwise, replace the existing Port setting.
+    if grep -q "^Port " /etc/ssh/sshd_config; then
+      sed -i 's/^Port .*/Port 1337/' /etc/ssh/sshd_config
+    else
+      echo "Port 1337" >> /etc/ssh/sshd_config
+    fi
     systemctl restart sshd
 
     # Start and enable Jenkins
