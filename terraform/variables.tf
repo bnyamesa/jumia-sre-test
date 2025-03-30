@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  description = "A name for the project to tag resources"
+  description = "Project name for tagging resources"
   type        = string
   default     = "jumia-sre-challenge"
 }
@@ -75,35 +75,4 @@ variable "availability_zones" {
   description = "Availability zones to use"
   type        = list(string)
   default     = ["eu-central-1a", "eu-central-1b", "eu-central-1c"]
-}
-
-variable "db_subnet_group_name" {
-  description = "Name of the RDS DB Subnet Group"
-  type        = string
-  default     = "jumia-sre-challenge-db-subnet-group"
-}
-
-# EKS Cluster variables (Bonus)
-variable "cluster_name" {
-  description = "EKS cluster name"
-  type        = string
-  default     = "jumia-sre-challenge-eks"
-}
-
-variable "desired_capacity" {
-  description = "Desired capacity for the EKS node group"
-  type        = number
-  default     = 3
-}
-
-variable "min_capacity" {
-  description = "Minimum capacity for the EKS node group"
-  type        = number
-  default     = 3
-}
-
-variable "max_capacity" {
-  description = "Maximum capacity for the EKS node group"
-  type        = number
-  default     = 3
 }

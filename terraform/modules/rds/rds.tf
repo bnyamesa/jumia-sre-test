@@ -1,10 +1,38 @@
-variable "db_name" { type = string }
-variable "db_username" { type = string }
-variable "db_password" { type = string }
-variable "db_instance_class" { type = string }
-variable "vpc_security_group_ids" { type = list(string) }
-variable "db_subnet_group_name" { type = string }
-variable "project_name" { type = string }
+variable "db_name" {
+  description = "Database name"
+  type        = string
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+}
+
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class"
+  type        = string
+}
+
+variable "vpc_security_group_ids" {
+  description = "List of VPC security group IDs"
+  type        = list(string)
+}
+
+variable "db_subnet_group_name" {
+  description = "Name of the DB Subnet Group"
+  type        = string
+}
+
+variable "project_name" {
+  description = "Project name for tagging"
+  type        = string
+}
 
 resource "aws_db_instance" "postgres_db" {
   identifier           = "${var.project_name}-db"
@@ -21,12 +49,18 @@ resource "aws_db_instance" "postgres_db" {
   skip_final_snapshot  = true
   publicly_accessible  = false
   multi_az             = false
-  tags = { Name = "${var.project_name}-postgres-db" }
+
+  tags = {
+    Name = "${var.project_name}-postgres-db"
+  }
 }
 
 output "rds_endpoint" {
-  value = aws_db_instance.postgres_db.endpoint
+  description = "The endpoint of the RDS instance"
+  value       = aws_db_instance.postgres_db.endpoint
 }
+
 output "rds_db_name" {
-  value = aws_db_instance.postgres_db.db_name
+  description = "The name of the database"
+  value       = aws_db_instance.postgres_db.db_name
 }
