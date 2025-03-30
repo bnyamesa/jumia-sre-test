@@ -1,5 +1,3 @@
-# --- File: ./terraform/modules/jenkins/jenkins.tf ---
-
 variable "project_name" {
   description = "Project name for tagging"
   type        = string
@@ -151,5 +149,5 @@ output "jenkins_ansible_inventory" {
     [jenkins]
     ${aws_instance.jenkins.public_ip} ansible_host=${aws_instance.jenkins.public_ip} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/${var.ssh_key_name}.pem ansible_ssh_port=1337
   EOT
-  sensitive = false # IP address is public info
+  sensitive = false
 }
