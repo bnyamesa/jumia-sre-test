@@ -91,7 +91,7 @@ resource "aws_security_group" "alb_sg" {
 
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project_name}-rds-sg"
-  description = "Allow PostgreSQL traffic from microservice"
+  description = "Allow PostgreSQL traffic from microservice and entire VPC"
   vpc_id      = aws_vpc.main.id
 
   egress {
@@ -111,7 +111,6 @@ resource "aws_security_group" "microservice_sg" {
   description = "Allow SSH, and traffic from ALB"
   vpc_id      = aws_vpc.main.id
 
-  # Prevent Terraform from replacing this resource if only the description changes
   lifecycle {
     ignore_changes = [
       description,
@@ -154,7 +153,6 @@ resource "aws_security_group" "microservice_sg" {
   }
 }
 
-
 resource "aws_security_group_rule" "rds_ingress_from_microservice" {
   type                     = "ingress"
   from_port                = 5432
@@ -163,6 +161,17 @@ resource "aws_security_group_rule" "rds_ingress_from_microservice" {
   security_group_id        = aws_security_group.rds_sg.id
   source_security_group_id = aws_security_group.microservice_sg.id
   description              = "Allow PostgreSQL traffic from Microservice SG"
+}
+
+# NEW: Allow PostgreSQL traffic from the entire VPC so that EKS can connect
+resource "aws_security_group_rule" "rds_ingress_from_vpc" {
+  type              = "ingress"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  security_group_id = aws_security_group.rds_sg.id
+  cidr_blocks       = [var.vpc_cidr]
+  description       = "Allow PostgreSQL traffic from the entire VPC"
 }
 
 # --- RDS Subnet Group ---
@@ -213,13 +222,13 @@ module "rds" {
 
 # ALB Module
 module "elb" {
-  source          = "./modules/elb"
-  project_name    = var.project_name
-  vpc_id          = aws_vpc.main.id
-  subnet_ids      = aws_subnet.public[*].id
-  security_groups = [aws_security_group.alb_sg.id]
+  source           = "./modules/elb"
+  project_name     = var.project_name
+  vpc_id           = aws_vpc.main.id
+  subnet_ids       = aws_subnet.public[*].id
+  security_groups  = [aws_security_group.alb_sg.id]
   target_instance_id = aws_instance.microservice.id
-  depends_on = [aws_instance.microservice]
+  depends_on       = [aws_instance.microservice]
 }
 
 # EKS Module 
@@ -230,9 +239,7 @@ module "eks" {
   instance_type = var.instance_type
 }
 
-
-
-#Jenkins Module
+# Jenkins Module
 module "jenkins" {
   source        = "./modules/jenkins"
   project_name  = var.project_name
@@ -242,4 +249,3 @@ module "jenkins" {
   vpc_id        = aws_vpc.main.id
   subnet_ids    = aws_subnet.public[*].id
 }
-
