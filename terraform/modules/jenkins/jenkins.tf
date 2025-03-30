@@ -66,12 +66,21 @@ resource "aws_instance" "jenkins" {
 
   user_data = <<-EOF
     #!/bin/bash
+    # Update and install necessary packages
     sudo apt-get update -y
     sudo apt-get install -y openjdk-11-jdk wget
+
+    # Install Jenkins
     wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
     sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
     sudo apt-get update -y
     sudo apt-get install -y jenkins
+
+    # Configure SSH to listen on port 1337
+    sudo sed -i 's/#Port 22/Port 1337/' /etc/ssh/sshd_config
+    sudo systemctl restart sshd
+
+    # Start and enable Jenkins
     sudo systemctl start jenkins
     sudo systemctl enable jenkins
   EOF
